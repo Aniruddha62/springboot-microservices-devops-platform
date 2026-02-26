@@ -1,0 +1,124 @@
+version: '3.8'
+
+services:
+
+  # ── Databases ──────────────────────────────────────────
+  postgres-emp:
+    image: postgres:15-alpine
+    container_name: postgres-emp
+    environment:
+      POSTGRES_DB: employeedb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_emp_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - emp-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-dept:
+    image: postgres:15-alpine
+    container_name: postgres-dept
+    environment:
+      POSTGRES_DB: deptdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_dept_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - emp-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Backend Services ───────────────────────────────────
+  employee-service:
+    build: ./services/employee-service
+    container_name: employee-service
+    ports:
+      - "8081:8081"
+    environment:
+      DB_URL: jdbc:postgresql://postgres-emp:5432/employeedb
+      DB_USER: postgres
+      DB_PASSWORD: password
+      JWT_SECRET: MySecretKeyForJwtTokenGeneration123!
+    depends_on:
+      postgres-emp:
+        condition: service_healthy
+    networks:
+      - emp-net
+    restart: unless-stopped
+
+  department-service:
+    build: ./services/department-service
+    container_name: department-service
+    ports:
+      - "8082:8082"
+    environment:
+      DB_URL: jdbc:postgresql://postgres-dept:5432/deptdb
+      DB_USER: postgres
+      DB_PASSWORD: password
+    depends_on:
+      postgres-dept:
+        condition: service_healthy
+    networks:
+      - emp-net
+    restart: unless-stopped
+
+  # ── Frontend ───────────────────────────────────────────
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - employee-service
+      - department-service
+    networks:
+      - emp-net
+
+  # ── Monitoring ─────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: prometheus
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - emp-net
+
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+      GF_SECURITY_ADMIN_USER: admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
+    depends_on:
+      - prometheus
+    networks:
+      - emp-net
+
+volumes:
+  postgres_emp_data:
+  postgres_dept_data:
+  grafana_data:
+
+networks:
+  emp-net:
+    driver: bridge
