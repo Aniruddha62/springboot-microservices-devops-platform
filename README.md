@@ -4,8 +4,6 @@ This project is a microservices-based employee management platform built using S
 
 The focus of this project is not just backend development, but full deployment automation, infrastructure setup, and monitoring.
 
----
-
 ## 🚀 Tech Stack
 
 - Spring Boot
@@ -18,8 +16,6 @@ The focus of this project is not just backend development, but full deployment a
 - Prometheus
 - Grafana
 
----
-
 ## ✨ Features
 
 - Employee CRUD operations
@@ -28,8 +24,6 @@ The focus of this project is not just backend development, but full deployment a
 - Infrastructure provisioning using Terraform
 - CI/CD automation pipeline
 - Monitoring with Prometheus & Grafana
-
----
 
 ## 📁 Project Structure
 
@@ -47,8 +41,6 @@ AWS infrastructure configuration
 
 /.github/workflows  
 CI/CD pipeline  
-
----
 
 ## 👨‍💻 Author
 
